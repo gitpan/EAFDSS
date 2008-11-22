@@ -1,0 +1,29 @@
+K 25
+svn:wc:ra_dav:version-url
+V 40
+/svn/!svn/ver/29/trunk/EAFDSS/lib/EAFDSS
+END
+SDNP.pm
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/42/trunk/EAFDSS/lib/EAFDSS/SDNP.pm
+END
+Base.pm
+K 25
+svn:wc:ra_dav:version-url
+V 48
+/svn/!svn/ver/42/trunk/EAFDSS/lib/EAFDSS/Base.pm
+END
+Dummy.pm
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svn/!svn/ver/42/trunk/EAFDSS/lib/EAFDSS/Dummy.pm
+END
+Micrelec.pm
+K 25
+svn:wc:ra_dav:version-url
+V 52
+/svn/!svn/ver/42/trunk/EAFDSS/lib/EAFDSS/Micrelec.pm
+END
