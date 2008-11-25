@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Base.pm 42 2008-11-22 21:17:32Z hasiotis $
+# ID: $Id: Base.pm 45 2008-11-25 00:37:50Z hasiotis $
 
 package EAFDSS::Base;
 
@@ -14,6 +14,8 @@ use Carp;
 use Data::Dumper;
 
 use base qw ( Class::Base );
+
+our($VERSION) = '0.11';
 
 sub init {
 	my($self, $config) = @_;
@@ -412,7 +414,7 @@ __END__
 
 =head1 NAME
 
-EAFDSS::Base - base class for all other classes
+EAFDSS::Base - EAFDSS Base Class Driver for all other drivers
 
 =head1 DESCRIPTION
 

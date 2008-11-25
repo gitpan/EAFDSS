@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Micrelec.pm 42 2008-11-22 21:17:32Z hasiotis $
+# ID: $Id: Micrelec.pm 45 2008-11-25 00:37:50Z hasiotis $
 
 package EAFDSS::Micrelec;
 
@@ -14,6 +14,8 @@ use Switch;
 use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
+
+our($VERSION) = '0.11';
 
 sub PROTO_DetailSign {
 	my($self) = shift @_;
@@ -362,7 +364,7 @@ sub UTIL_time6toHost {
 1;
 =head1 NAME
 
-EAFDSS::Micrelec - base class for all other Micrelec classes
+EAFDSS::Micrelec - EAFDSS Base Class Driver for Micrelec drivers (SDNP and SDSP)
 
 =head1 DESCRIPTION
 

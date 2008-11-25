@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: EAFDSS.pm 43 2008-11-22 21:17:49Z hasiotis $
+# ID: $Id: EAFDSS.pm 45 2008-11-25 00:37:50Z hasiotis $
 
 package EAFDSS;
 
@@ -15,7 +15,7 @@ use Data::Dumper;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.10';
+our($VERSION) = '0.11';
 
 sub init {
 	my($self, $config) = @_;
@@ -95,7 +95,7 @@ __END__
 
 =head1 NAME
 
-EAFDSS - base class for all other classes
+EAFDSS - Electronic Fiscal Signature Devices Library
 
 =head1 SYNOPSIS
 

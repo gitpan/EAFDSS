@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Dummy.pm 42 2008-11-22 21:17:32Z hasiotis $
+# ID: $Id: Dummy.pm 45 2008-11-25 00:37:50Z hasiotis $
 
 package EAFDSS::Dummy;
 
@@ -17,6 +17,8 @@ use Config::IniHash;
 use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
+
+our($VERSION) = '0.11';
 
 sub init {
 	my($class)  = shift @_;
@@ -350,7 +352,7 @@ sub UTIL_time6toHost {
 1;
 =head1 NAME
 
-EAFDSS::Base - base class for all other Device classes
+EAFDSS::Dummy - EAFDSS Driver for a Dummy filesystem based device 
 
 =head1 DESCRIPTION
 

@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 42 2008-11-22 21:17:32Z hasiotis $
+# ID: $Id: SDNP.pm 45 2008-11-25 00:37:50Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -17,6 +17,8 @@ use IO::Socket::INET;
 use Data::Dumper;
 
 use base qw (EAFDSS::Micrelec );
+
+our($VERSION) = '0.11';
 
 sub init {
 	my($class)  = shift @_;
@@ -366,7 +368,7 @@ __END__
 
 =head1 NAME
 
-EAFDSS::SDNP - Micrelec Network Electronic Fiscal Signature Devices Library
+EAFDSS::SDNP - EAFDSS Driver for Micrelec SDNP Devices
 
 
 =head1 DESCRIPTION
