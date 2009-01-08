@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Dummy.pm 45 2008-11-25 00:37:50Z hasiotis $
+# ID: $Id: Dummy.pm 51 2009-01-08 09:17:46Z hasiotis $
 
 package EAFDSS::Dummy;
 
@@ -11,6 +11,7 @@ use 5.006001;
 use strict;
 use warnings;
 use Carp;
+use Class::Base;
 use Switch;
 use Digest::SHA1  qw(sha1_hex);
 use Config::IniHash;
@@ -18,7 +19,7 @@ use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.11';
+our($VERSION) = '0.12';
 
 sub init {
 	my($class)  = shift @_;
@@ -360,7 +361,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.10.
+This is version 0.12.
 
 =head1 AUTHOR
 

@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: EAFDSS.pm 45 2008-11-25 00:37:50Z hasiotis $
+# ID: $Id: EAFDSS.pm 51 2009-01-08 09:17:46Z hasiotis $
 
 package EAFDSS;
 
@@ -11,11 +11,12 @@ use 5.006001;
 use strict;
 use warnings;
 use Carp;
+use Class::Base;
 use Data::Dumper;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.11';
+our($VERSION) = '0.12';
 
 sub init {
 	my($self, $config) = @_;
@@ -183,7 +184,7 @@ Get the headers
 
 =head1 VERSION
 
-This is version 0.10. Which actually is the first release and an unstable release. Only for beta testers!
+This is version 0.12. Which actually is the first release and an unstable release. Only for beta testers!
 
 =head1 AUTHOR
 

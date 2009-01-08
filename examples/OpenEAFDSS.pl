@@ -19,19 +19,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS.pl 45 2008-11-25 00:37:50Z hasiotis $
+# ID: $Id: OpenEAFDSS.pl 51 2009-01-08 09:17:46Z hasiotis $
 
 use strict;
+use lib "../lib";
 use Switch;
 use EAFDSS; 
 use Getopt::Std;
 use Data::Dumper; 
 use Config::General qw(ParseConfig);
 
-my(%progie) = ( name      => 'OpenEAFDSS-Util.pl',
+my(%progie) = ( name      => 'OpenEAFDSS.pl',
                 author    => 'Nikos Hasiotis (hasiotis@gmail.com)',
                 copyright => 'Copyright (c) 2008 Hasiotis Nikos, all rights reserved',
-                version   => '0.10');
+                version   => '0.12');
 
 sub main() {
         my($verbal, $driver, $params, $serial, $sDir, $cmd) = init_progie();
@@ -56,6 +57,7 @@ sub main() {
 		case "STATUS"  { cmdStatus($dh)             }
 		case "INFO"    { cmdInfo($dh)               }
 		case "TIME"    { cmdTime($dh, $cmdParam)    }
+		case "QUERY"   { cmdQuery($dh)              }
 		case "HEADERS" { cmdHeaders($dh, $cmdParam) }
 	}
 }
@@ -151,6 +153,24 @@ sub cmdTime() {
 
 }
 
+sub cmdQuery() {
+	my($dh) = shift @_;
+
+	my($devices) = $dh->Query();
+	my($errNo)  = $dh->error();
+	if ($devices) {
+		while ( my($key, $value) = each %$devices) {
+			printf("%s\n", $key);
+		}
+		exit(0);
+	} else {
+		my($errNo)  = $dh->error();
+		my($errMsg) = $dh->errMessage($errNo);
+		printf(STDERR "ERROR [0x%02X]: %s\n", $errNo, $errMsg);
+		exit($errNo);
+	}
+}
+
 sub cmdHeaders() {
 	my($dh)      = shift @_;
 	my($headers) = shift @_;
@@ -191,7 +211,7 @@ sub init_progie() {
         my(%opt, $valid, $cfg, $name, $cmd, $debug, $driver, $serial, $params, $sDir);
         getopts('hvn:d:s:p:i:e:c:', \%opt);
 
-        if ($opt{c}) {$cfg    = $opt{i}}  else {$cfg = "OpenEAFDSS.conf"}
+        if ($opt{c}) {$cfg    = $opt{c}}  else {$cfg = "OpenEAFDSS.conf"}
 	my(%cfg) = ParseConfig(-ConfigFile => $cfg, -LowerCaseNames => 1);
 
         if ($opt{h}) {$valid  = "FALSE"}  else {$valid = "TRUE"};
@@ -208,18 +228,21 @@ sub init_progie() {
 
         if ($opt{e}) {$cmd    = $opt{e}}  else {$valid = "FALSE"};
 
+        if ($valid =~ /FALSE/) {
+		print_help();
+	}
+
         if ($opt{d}) {$driver = $opt{d}};
         if ($opt{s}) {$serial = $opt{s}};
         if ($opt{p}) {$params = $opt{p}};
         if ($opt{i}) {$sDir   = $opt{i}};
 
-	if (! defined $driver) { printf("No driver defined\n");        exit(0)}; 
-	if (! defined $params) { printf("No driver params defined\n"); exit(0)}; 
-	if (! defined $sDir)   { printf("No signs dir defined\n");     exit(0)}; 
-	if (! defined $serial) { printf("No serial defined\n");        exit(0)}; 
+	if ( (! defined $driver) && ($valid =~ /TRUE/) ) { printf("No driver defined\n");        exit(0)}; 
+	if ( (! defined $params) && ($valid =~ /TRUE/) ) { printf("No driver params defined\n"); exit(0)}; 
+	if ( (! defined $sDir)   && ($valid =~ /TRUE/) ) { printf("No signs dir defined\n");     exit(0)}; 
+	if ( (! defined $serial) && ($valid =~ /TRUE/) ) { printf("No serial defined\n");        exit(0)}; 
 
         if ($valid =~ /FALSE/) {
-		print_help();
                 exit(0);
         } else {
                 return($debug, $driver, $params, $serial, $sDir, $cmd);
@@ -232,7 +255,7 @@ sub print_help() {
 	printf("\t  -h                                (this help screen)              \n");
 	printf("\t  -v                                (enable debug information)      \n\n");
 	printf("\t  -c CONFIG_FILENAME                (which config file to use       \n");
-	printf("\t                                     default: OpenEAFDSS-Util.conf) \n\n");
+	printf("\t                                     default: OpenEAFDSS.conf) \n\n");
 	printf("\t  -n DEVICE_NAME                    (device name on config file)    \n");
 	printf("\t  -d DRIVER_NAME                    (driver to use)                 \n");
 	printf("\t  -s SERIAL_NUMBER                  (device serial number)          \n");
@@ -244,6 +267,7 @@ sub print_help() {
 	printf("\t                                         - STATUS                   \n");
 	printf("\t                                         - REPORT                   \n");
 	printf("\t                                         - INFO                     \n");
+	printf("\t                                         - QUERY                    \n");
 	printf("\t                                         - HEADERS [headers])       \n");
 	printf("\n  Example 1: $progie{name} -d EAFDSS::SDNP -p hostname -e \"SIGN invoice.txt\"\n");
 	printf("\n             This command will sign the file invoice.txt printing the signature");

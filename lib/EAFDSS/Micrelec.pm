@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Micrelec.pm 45 2008-11-25 00:37:50Z hasiotis $
+# ID: $Id: Micrelec.pm 51 2009-01-08 09:17:46Z hasiotis $
 
 package EAFDSS::Micrelec;
 
@@ -11,11 +11,13 @@ use 5.006001;
 use strict;
 use warnings;
 use Switch;
+use Carp;
+use Class::Base;
 use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.11';
+our($VERSION) = '0.12';
 
 sub PROTO_DetailSign {
 	my($self) = shift @_;
@@ -27,6 +29,19 @@ sub PROTO_DetailSign {
 		return ($reply, sprintf("%s %04d %08d %s%s %s", $sign, $dailySigns, $totalSigns, $self->date6ToHost($date), substr($time, 0, 4), $self->{SN}));
 	} else {
 		return (-1);
+	}
+}
+
+sub PROTO_Query{
+	my($self) = shift @_;
+
+	$self->debug("  [PROTO] Query ");
+	my($replyCode, $devices) = $self->_sdnpQuery();
+
+	if (! $replyCode) {
+		return ($replyCode, $devices);
+	} else {
+		return ($self->error());
 	}
 }
 
@@ -147,6 +162,7 @@ sub PROTO_SetTime {
 		return ($self->error());
 	}
 }
+
 sub PROTO_ReadDeviceID {
 	my($self) = shift @_;
 
@@ -313,6 +329,9 @@ sub errMessage {
 		case 64+0x01	 { return "Device not accessible"}
 		case 64+0x02	 { return "No such file"}
 		case 64+0x03	 { return "Device Sync Failed"}
+		case 64+0x04	 { return "Bad Serial Number"}
+		case 64+0x05	 { return "Query found no devices"}
+		case 64+0x10	 { return "File contains invalid characters"}
 
 		else		 { return undef}
 	}
@@ -372,7 +391,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.10.
+This is version 0.12.
 
 =head1 AUTHOR
 
