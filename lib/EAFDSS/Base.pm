@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Base.pm 51 2009-01-08 09:17:46Z hasiotis $
+# ID: $Id: Base.pm 56 2009-01-16 19:31:08Z hasiotis $
 
 package EAFDSS::Base;
 
@@ -16,7 +16,7 @@ use Data::Dumper;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.12';
+our($VERSION) = '0.13';
 
 sub init {
 	my($self, $config) = @_;
@@ -464,7 +464,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.12.
+This is version 0.13.
 
 =head1 AUTHOR
 

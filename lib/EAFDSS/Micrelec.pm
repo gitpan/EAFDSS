@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Micrelec.pm 51 2009-01-08 09:17:46Z hasiotis $
+# ID: $Id: Micrelec.pm 56 2009-01-16 19:31:08Z hasiotis $
 
 package EAFDSS::Micrelec;
 
@@ -17,7 +17,7 @@ use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.12';
+our($VERSION) = '0.13';
 
 sub PROTO_DetailSign {
 	my($self) = shift @_;
@@ -58,6 +58,9 @@ sub PROTO_GetSign {
 		}
 	} until ($reply{DATA} !~ /^0E/);
 
+	if (! exists $reply{OPCODE}) {
+		$reply{OPCODE} = 0x22;
+	}
 	if ( %reply && ($reply{OPCODE} == 0x22) ) {
 		while (read($fh, $chunk, 400)) {
 			my(%reply) = $self->SendRequest(0x21, 0x00, "@/$chunk");
@@ -391,7 +394,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.12.
+This is version 0.13.
 
 =head1 AUTHOR
 
