@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 56 2009-01-16 19:31:08Z hasiotis $
+# ID: $Id: SDNP.pm 58 2009-03-19 22:01:46Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -21,7 +21,7 @@ use Data::Dumper;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.13';
+our($VERSION) = '0.20';
 
 sub init {
 	my($class)  = shift @_;
@@ -510,7 +510,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.13.
+This is version 0.20.
 
 =head1 AUTHOR
 

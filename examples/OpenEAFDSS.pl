@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS.pl 56 2009-01-16 19:31:08Z hasiotis $
+# ID: $Id: OpenEAFDSS.pl 58 2009-03-19 22:01:46Z hasiotis $
 
 use strict;
 use lib "../lib";
@@ -32,7 +32,7 @@ use Config::General qw(ParseConfig);
 my(%progie) = ( name      => 'OpenEAFDSS.pl',
                 author    => 'Nikos Hasiotis (hasiotis@gmail.com)',
                 copyright => 'Copyright (c) 2008 Hasiotis Nikos, all rights reserved',
-                version   => '0.13');
+                version   => '0.20');
 
 sub main() {
         my($verbal, $driver, $params, $serial, $sDir, $cmd) = init_progie();
@@ -49,7 +49,7 @@ sub main() {
 		exit -1;
 	}
 
-	my($cmdType, $cmdParam) = split(/\s+/, $cmd);
+	my($cmdType, $cmdParam) = split(/\s+/, $cmd, 2);
 
 	switch (uc($cmdType)) {
 		case "SIGN"    { cmdSign($dh, $cmdParam)    }
@@ -76,7 +76,6 @@ sub cmdSign() {
 		printf(STDERR "ERROR [0x%02X]: %s\n", $errNo, $errMsg);
 		exit($errNo);
 	}
-
 }
 
 sub cmdReport() {
@@ -187,9 +186,8 @@ sub cmdHeaders() {
 			exit($errNo);
 		}
 	} else {
-		my($result) = $dh->GetHeaders();
-		if ($result) {
-			my(@headersArray) = @$result;
+		my(@headersArray) = $dh->GetHeaders();
+		if (@headersArray) {
 			my($i);
 			for ($i=0; $i < 12; $i+=2) {
 				if ($headersArray[$i] ne '') {
