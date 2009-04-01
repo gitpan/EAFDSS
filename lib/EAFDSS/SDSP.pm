@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDSP.pm 59 2009-03-22 17:57:01Z hasiotis $
+# ID: $Id: SDSP.pm 72 2009-04-01 05:49:23Z hasiotis $
 
 package EAFDSS::SDSP;
 
@@ -14,12 +14,10 @@ use POSIX;
 
 use Carp;
 use Class::Base;
-use Device::SerialPort;
-use Data::Dumper;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.20';
+our($VERSION) = '0.39_01';
 
 my($control) = {
 		'ACK' => chr(0x06),
@@ -45,7 +43,16 @@ sub init {
 	}
 
 	$self->debug("  Serial Device Initialization [%s]", $self->{SERIAL});
-	$self->{_SERIAL} = Device::SerialPort->new($self->{SERIAL});
+	if ($^O eq 'MSWin32') {
+		require Win32::SerialPort;
+		$self->{_SERIAL} = Win32::SerialPort->new($self->{SERIAL});
+
+ 	} else {
+		require Device::SerialPort;
+		$self->{_SERIAL} = Device::SerialPort->new($self->{SERIAL});
+	}
+
+
 	if (! defined $self->{_SERIAL}) {
 		return undef;
 	}
@@ -94,7 +101,6 @@ sub SendRequest {
 			$count_out = $self->{_SERIAL}->write($control->{'CAN'});
 			$count_out = $self->{_SERIAL}->write($control->{'CAN'});
 			$count_out = $self->{_SERIAL}->write($control->{'ENQ'});
-			$self->{_SERIAL}->write_drain();
 			if ($count_out) {
 				my($count_in, $ack) = $self->{_SERIAL}->read(1);
 				if ($count_in && ($ack eq $control->{'ACK'} ) ) {
@@ -116,7 +122,6 @@ sub SendRequest {
 			my($count_out);
 			$self->debug("    Sending PACKET [try %d]", $try);
 			$count_out = $self->{_SERIAL}->write($packet);
-			$self->{_SERIAL}->write_drain();
 			if ($count_out == length($packet) ) {
 				my($count_in, $ack) = $self->{_SERIAL}->read(1);
 				if ($count_in && ($ack eq $control->{'ACK'} ) ) {
@@ -220,7 +225,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.20.
+This is version 0.39_01.
 
 =head1 AUTHOR
 

@@ -1,5 +1,5 @@
-EAFDSS version 0.20
-===================
+EAFDSS version 0.39_01
+======================
 
 This library handles the communication with an Electronic Signature
 Device (EAFDSS - ΕΑΦΔΣΣ). It also handles all necessary file housekeeping
@@ -21,10 +21,11 @@ This module requires these other modules and libraries:
 * Switch
 * Carp
 * Socket
+* Class::Base
 * IO::Socket::INET
-* Time::HiRes
 * Digest::SHA1
-* Config::IniHash
+* Config::IniFiles
+* Device::SerialPort
 
 COPYRIGHT AND LICENCE
 

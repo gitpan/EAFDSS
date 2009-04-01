@@ -19,14 +19,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS.pl 58 2009-03-19 22:01:46Z hasiotis $
+# ID: $Id: OpenEAFDSS.pl 65 2009-03-30 14:15:30Z hasiotis $
 
 use strict;
-use lib "../lib";
 use Switch;
 use EAFDSS; 
 use Getopt::Std;
-use Data::Dumper; 
 use Config::General qw(ParseConfig);
 
 my(%progie) = ( name      => 'OpenEAFDSS.pl',

@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Base.pm 58 2009-03-19 22:01:46Z hasiotis $
+# ID: $Id: Base.pm 68 2009-03-31 05:41:46Z hasiotis $
 
 package EAFDSS::Base;
 
@@ -12,11 +12,10 @@ use strict;
 use warnings;
 use Carp;
 use Class::Base;
-use Data::Dumper;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.20';
+our($VERSION) = '0.39_01';
 
 sub init {
 	my($self, $config) = @_;
@@ -161,6 +160,27 @@ sub Report {
         return $z;
 }
 
+sub _RecoveryReport {
+        my($self) = shift @_;
+
+	my($deviceDir) = sprintf("%s/%s", $self->{DIR}, $self->{SN});
+
+	$self->_validateFilesB();
+	$self->_validateFilesC();
+
+        $self->debug("Issue Recovery Report operation");
+
+	my($reply1) = $self->PROTO_IssueReport();
+	if ($reply1 != 0) {
+		return $self->error($reply1);
+	}
+
+	my($reply2, $status1, $status2, $totalSigns, $dailySigns, $date, $time, $z, $sn, $closure) = $self->PROTO_ReadClosure(0);
+	$self->_createFileC($z, $deviceDir, $date, $time, $closure);
+
+        return $z;
+}
+
 sub Info {
         my($self) = shift @_;
 
@@ -273,7 +293,6 @@ sub _Recover {
 
 		my($curB)  = $curA; $curB =~ s/_a/_b/;
 		my($curIndex) = substr($curA, 21, 4); $curIndex =~ s/^0*//;
-		$self->debug("            Updating file B  [%s] -- Index [%d]", $curB, $curIndex);
 
 		$self->debug("            Resigning file A [%s]", $curA);
 		open(FH, $curFileA);
@@ -282,14 +301,20 @@ sub _Recover {
 		my($fullSign) = sprintf("%s %04d %08d %s%s %s", $sign, $dailySigns, $totalSigns, $self->UTIL_date6ToHost($date), substr($time, 0, 4), $self->{SN});
 		close(FH);
 
+		$self->debug("            Updating file  B [%s] -- Index [%d]", $curB, $curIndex);
 		open(FB, ">>", $curFileB) || croak "Error: $!";
 		print(FB "\n" . $fullSign); 
 		close(FB);
 	}
 
-	my($replyFinal, $z) = $self->Report();
+	my($z) = $self->_RecoveryReport();
+	if ($z) {
+		return(0);
+	} else {
+		my($errNo) = $self->error();
+		return $self->error($errNo);
+	}
 
-	return($replyFinal);
 }
 
 sub _createFileA {
@@ -370,8 +395,8 @@ sub _validateFilesB {
                         my($curIndex) = substr($curA, 21, 4); $curIndex =~ s/^0*//;
                         $self->debug(  "            Recreating file B [%s] -- Index [%d]", $curB, $curIndex);
 
-                        my($replyCode, $status1, $status2, $totalSigns, $dailySigns, $date, $time, $sign, $sn, $closure) = $self->ReadSignEntry($curIndex);
-                        my($fullSign) = sprintf("%s %04d %08d %s%s %s", $sign, $dailySigns, $totalSigns, $self->date6ToHost($date), substr($time, 0, 4), $self->{SN});
+                        my($replyCode, $status1, $status2, $totalSigns, $dailySigns, $date, $time, $sign, $sn, $closure) = $self->PROTO_ReadSignEntry($curIndex);
+                        my($fullSign) = sprintf("%s %04d %08d %s%s %s", $sign, $dailySigns, $totalSigns, $self->UTIL_date6ToHost($date), substr($time, 0, 4), $self->{SN});
 
                         open(FB, ">",  $curFileB) || croak "Error: $!";
                         print(FB $fullSign); 
@@ -464,7 +489,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.20.
+This is version 0.39_01.
 
 =head1 AUTHOR
 

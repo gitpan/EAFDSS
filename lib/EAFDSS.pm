@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: EAFDSS.pm 60 2009-03-23 08:37:57Z hasiotis $
+# ID: $Id: EAFDSS.pm 65 2009-03-30 14:15:30Z hasiotis $
 
 package EAFDSS;
 
@@ -12,11 +12,10 @@ use strict;
 use warnings;
 use Carp;
 use Class::Base;
-use Data::Dumper;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.20';
+our($VERSION) = '0.39_01';
 
 sub init {
 	my($self, $config) = @_;
@@ -358,15 +357,17 @@ type of the printing line, and one for the actual printing message.
    0x50: File contains invalid characters
 
 =head1 EXAMPLES
+
 Take a look at the examples directory of the distribution for a complete command line utility (OpenEAFDSS.pl) using the
 library.
 
 =head1 SUPPORT / WARRANTY
+
 The EAFDSS is free Open Source software. IT COMES WITHOUT WARRANTY OF ANY KIND.
 
 =head1 VERSION
 
-This is version 0.20. This version has a finalised API and full functionallity but still contains known bugs. NOT TO BE
+This is version 0.39_01. This version has a finalised API and full functionallity but still contains known bugs. NOT TO BE
 USED IN A PRODUCTION ENVIRONMENT.
 
 =head1 AUTHOR

@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 58 2009-03-19 22:01:46Z hasiotis $
+# ID: $Id: SDNP.pm 71 2009-03-31 22:28:37Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -15,13 +15,19 @@ use POSIX;
 use Carp;
 use Class::Base;
 use Socket;
-use Time::HiRes qw ( setitimer ITIMER_REAL time );
 use IO::Socket::INET;
-use Data::Dumper;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.20';
+our($VERSION) = '0.39_01';
+
+my($clock_ticks);
+if ( $^O =~ /MSWin32/ ) {
+	$clock_ticks = 1000;
+} else {
+	$clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
+}
+
 
 sub init {
 	my($class)  = shift @_;
@@ -43,13 +49,10 @@ sub init {
 		return undef;
 	}
 
-	$self->debug("  Setting synced to FALSE");
-	$self->{_SYNCED} = 0;
-
 	$self->debug("  Setting timers");
-	$self->{_TSYNC} = 0;
-	$self->{_T0}    = 0;
-	$self->{_T1}    = 0;
+	$self->_setTimer('_TSYNC', 0);
+	$self->_setTimer('_T0', 0);
+	$self->_setTimer('_T1', 0);
 
 	$self->debug("  Setting frame counter to 1");
 	$self->{_FSN}   = 1;
@@ -72,100 +75,112 @@ sub SendRequest {
 	my(%reply) = ();
 
 	# For at least 6 times do:
-	my($try);
-	local $SIG{ALRM} = sub { $self->{_T0} -= 0.100; $self->{_T1} -= 0.100};
-	setitimer(ITIMER_REAL, 0.100, 0.100);
-	for ($try = 1; $try < 6; $try++) {
-		my(%reply)  = ();
-		$self->debug("    Send Request try #%d", $try);
-		SYNC:
-		# If state is UNSYNCHRONIZED or connection SYNC timer expired then:
-		if ($self->{_TSYNC} == 0) {
-			if ( $self->_sdnpSync() == 0) {
-				$self->debug("        Sync Failed\n");
-				$self->error(64+3);
-				setitimer(ITIMER_REAL, 0, 0);
-				return %reply;
-			}
-		}
-
-		SEND:
-		# Send REQUEST(Connection's NextFSN) using 'RequestDataPacket';
-		my($msg) = $self->_sdnpPacket($opcode, $opdata, $data);
-		$self->_sdnpPrintFrame("      ----> [%s]", $msg);
-		$self->{_SOCKET}->send($msg);
-
-		# Set T0 timer to 800 milliseconds;
-		$self->{_T0} = 1;
-		
-		# Do until T0 expires:
-		while ($self->{_T0} > 0) {
-			my($frame)  = undef;
-
-			$self->{_SOCKET}->recv($frame, 512);
-			if ($frame) {
-				%reply = $self->_sdnpAnalyzeFrame($frame);
-				$self->_sdnpPrintFrame("      <---- [%s]", $msg);
-				$reply{'HOST'} = $self->{_SOCKET}->peerhost();
-			} else {
-				$reply{HOST} = -1;
-			}
-
-			# If a valid SDNP frame received then do
-			if ($self->_sdnpFrameCheck(\%reply)) {
-				# If received frame's FSN <> Request frame's FSN
-				if ($self->{_FSN} != $reply{SN}) {
-					$self->debug("        Bad FSN, Discarding\n");
-					next;
-				} else {
-					# Test received frame's opcode;
-					# Case RST:
-					if ($reply{OPCODE} == 0x10) {
-						# Set connection's state to UNSYNCHRONIZED;
-						$self->{_SYNC} = 0;
-						goto SYNC;
-					}
-					# Case NAK:
-					if ($reply{OPCODE} == 0x13) {
-						goto SEND;
-					}
-					# Case REPLY:
-					if ($reply{OPCODE} == 0x22) {
-						# If received frame's data packet does not validate okay then:
-						my($i, $checksum) = (0, 0xAA55);
-						for ($i=0; $i < length($reply{DATA}); $i++) {
-							$checksum += ord substr($reply{DATA}, $i, 1);
-						}
-						$self->debug(  "        Checking Data checksum [%04X]", $checksum);
-						if ($checksum != $reply{CHECKSUM}) {
-							# Create and send NAK frame with FSN set to received FSN;
-							my($msg) = $self->sdnpPacket(0x13, 0x00);
-							$self->_sdnpPrintFrame("      ----> [%s]\n", $msg);
-							$self->{_SOCKET}->send($msg);
-							next;
-						} else {
-							# Renew connection's SYNC timer;
-							$self->{_TSYNC} = 1;
-
-							# Advance connection's NextFSN by one;
-							$self->{_FSN}++;
-
-							# Return request transmittion success;
-							setitimer(ITIMER_REAL, 0, 0);
-							return %reply;
-						}
-					}
-					$self->debug(  "        Bad Frame, Discarding");
-					next;
+	my($busy_try, $state, $try);
+	BUSY: for ($busy_try = 1; $busy_try <= 3; $busy_try++) {
+		for ($try = 1; $try < 6; $try++) {
+			my(%reply)  = ();
+			$self->debug("    Send Request try #%d", $try);
+			SYNC:
+			# If state is UNSYNCHRONIZED or connection SYNC timer expired then:
+			if ($self->_getTimer('_TSYNC') >= 0) {
+				$self->debug("      Syncing with device");
+				if ( $self->_sdnpSync() == 0) {
+					$self->debug("        Sync Failed");
+					$self->error(64+3);
+					return %reply;
 				}
-			} else {
-				$self->debug(  "        Bad Frame, Discarding");
+			}
+
+			SEND:
+			# Send REQUEST(Connection's NextFSN) using 'RequestDataPacket';
+			my($msg) = $self->_sdnpPacket($opcode, $opdata, $data);
+			$self->_sdnpPrintFrame("      ----> [%s]", $msg);
+			$self->{_SOCKET}->send($msg);
+
+			# Set T0 timer to 800 milliseconds;
+			$self->_setTimer('_T0', 0.800);
+		
+			# Do until T0 expires:
+			while ($self->_getTimer('_T0') <= 0) {
+				my($frame)  = undef;
+	
+				$self->{_SOCKET}->recv($frame, 512);
+				if ($frame) {
+					%reply = $self->_sdnpAnalyzeFrame($frame);
+					$self->_sdnpPrintFrame("      <---- [%s]", $msg);
+					$reply{'HOST'} = $self->{_SOCKET}->peerhost();
+				} else {
+					$reply{HOST} = -1;
+				}
+
+				# If a valid SDNP frame received then do
+				if ($self->_sdnpFrameCheck(\%reply)) {
+					# If received frame's FSN <> Request frame's FSN
+					if ($self->{_FSN} != $reply{SN}) {
+						$self->debug("        Bad FSN, Discarding\n");
+						next;
+					} else {
+						# Test received frame's opcode;
+						# Case RST:
+						if ($reply{OPCODE} == 0x10) {
+							# Set connection's state to UNSYNCHRONIZED;
+							$self->_setTimer('_TSYNC', 0);
+							goto SYNC;
+						}
+						# Case NAK:
+						if ($reply{OPCODE} == 0x13) {
+							goto SEND;
+						}
+						# Case REPLY:
+						if ($reply{OPCODE} == 0x22) {
+							# If received frame's data packet does not validate okay then:
+							my($i, $checksum) = (0, 0xAA55);
+							for ($i=0; $i < length($reply{DATA}); $i++) {
+								$checksum += ord substr($reply{DATA}, $i, 1);
+							}
+							#$self->debug(  "        Checking Data checksum [%04X]", $checksum);
+							if ($checksum != $reply{CHECKSUM}) {
+								# Create and send NAK frame with FSN set to received FSN;
+								my($msg) = $self->sdnpPacket(0x13, 0x00);
+								$self->_sdnpPrintFrame("      ----> [%s]\n", $msg);
+								$self->{_SOCKET}->send($msg);
+								next;
+							} else {
+								if ( $reply{DATA} =~ /^0E/ ) {
+									$self->debug("      Will retry because of busyness $busy_try");
+									$state = "BUSY";
+									sleep 2;
+									next BUSY;
+								} else {
+									$self->debug("      Done Getting reply");
+
+									# Renew connection's SYNC timer;
+									$self->_setTimer('_TSYNC', 4);
+	
+									# Advance connection's NextFSN by one;
+									$self->{_FSN}++;
+
+									# Return request transmittion success;
+									return %reply;
+								}
+							}
+						}
+						$self->debug(  "        Bad Frame, Discarding");
+						next;
+					}
+				} else {
+					$self->debug(  "        Bad Frame, Discarding");
+				}
 			}
 		}
 	}
 
+	if ($state eq "BUSY") {
+		$self->debug("      Too busy device... aborting");
+		$reply{DATA}   = "0E/0/";
+	}
+
 	# Return request transmittion failure;
-	setitimer(ITIMER_REAL, 0, 0);
 	return %reply;
 }
 
@@ -175,15 +190,11 @@ sub _sdnpQuery {
 
 	$self->_sdnpSendQuery();
 
-	local $SIG{ALRM} = sub { $self->{_T0} -= 0.100; $self->{_T1} -= 0.100};
-	setitimer(ITIMER_REAL, 0.100, 0.100);
-
 	# Set timer T0 to 500 milliseconds;
-	$self->{_T0} = 1.000;
-	$self->{_T1} = 0.500;
+	$self->_setTimer('_T0', 0.500);
 		
 	# Do until T0 expires:
-	while ($self->{_T0} > 0) {
+	while ($self->_getTimer('_T0') <= 0) {
 		my(%reply)  = ();
 		my($frame)  = undef;
 
@@ -217,14 +228,14 @@ sub _sdnpQuery {
 		}
 		close($query_socket);
 
-		if ($self->{_T1} < 0) {
+		$self->_setTimer('_T1', 0.500);
+		if ($self->_getTimer('_T1') >= 0) {
 			$self->_sdnpSendQuery();
-			$self->{_T1} = 0.500;
+			$self->_setTimer('_T1', 0.500);
 		}
 	}
 
-	$self->{_TIMER} = 0;
-	setitimer(ITIMER_REAL, 0, 0);
+	$self->_setTimer('_TSYNC', 0);
 
 	return (0, $devices);
 }
@@ -259,17 +270,15 @@ sub _sdnpSync {
 	my($self)  = shift @_;
 
 	# Set connection state to UNSYNCHRONIZED;
-	$self->{_SYNC} = 0;
+	$self->_setTimer('_TSYNC', 0);
 	
 	# For at least 6 times do:
 	my($try);
-	local $SIG{ALRM} = sub { $self->{_T0} -= 0.100; $self->{_T1} -= -.100};
-	setitimer(ITIMER_REAL, 0.100, 0.100);
 	for ($try = 1; $try < 6; $try++) {
 		$self->debug(  "      Send Sync Request try #%d", $try);
 
 		# Set timer T0 to 500 milliseconds;
-		$self->{_T0} = 1;
+		$self->_setTimer('_T0', 0.500);
 		
 		# Select a random initial FSN (IFSN); 
 		$self->{_FSN} = int(rand(32768) + 1);
@@ -280,7 +289,7 @@ sub _sdnpSync {
 		$self->{_SOCKET}->send($msg);
 
 		# Do until T0 expires:
-		while ($self->{_T0} > 0) {
+		while ($self->_getTimer('_T0') <= 0) {
 			my(%reply)  = ();
 			my($frame)  = undef;
 
@@ -302,15 +311,13 @@ sub _sdnpSync {
 						# Set connection NextFSN = IFSN + 1;
 						$self->{_FSN}++;
 
-						# Set connection state to SYNCHRONIZED;
-						$self->{_SYNC} = 1;
-
 						# Set connection SYNC timer to 4 seconds;
-						$self->{_TSYNC} = 1;
+						$self->_setTimer('_TSYNC', 4);
+
+						# Reset T0 timer
+						$self->_setTimer('_T0', 0);
 
 						# Return sync success;
-						$self->{_T0} = 0;
-						setitimer(ITIMER_REAL, 0, 0);
 						return 1;
 					} 
 				} else {
@@ -319,9 +326,6 @@ sub _sdnpSync {
 			}
 		}
 	}
-
-	$self->{_TIMER} = 0;
-	setitimer(ITIMER_REAL, 0, 0);
 
 	return 0;
 }
@@ -373,17 +377,17 @@ sub _sdnpFrameCheck {
 	my($self)   = shift @_;
 	my($frame)  = shift @_;
 
-	$self->debug(  "    Checking Frame");
+	#$self->debug(  "    Checking Frame");
 
 	# Check sender ip
 	my($ip) = inet_ntoa(inet_aton($self->{IP})); 
-	$self->debug(  "        Comparing [%s][%s]", $frame->{HOST}, $ip);
+	#$self->debug(  "        Comparing [%s][%s]", $frame->{HOST}, $ip);
 	if ($frame->{HOST} ne $ip) {
 		return 0;
 	}
 
 	# Check if size of UDP frame < size of SDNP header then: 
-	$self->debug(  "        Checking frame size [%d]", length($frame->{RAW}));
+	#$self->debug(  "        Checking frame size [%d]", length($frame->{RAW}));
 	if (length($frame->{RAW}) < 12) {
 		return 0;
 	}
@@ -398,19 +402,19 @@ sub _sdnpFrameCheck {
 	for ($i=0; $i < 10 ; $i++) {
 		$checksum += ord substr($frame->{RAW}, $i, 1);
 	}
-	$self->debug(  "        Checking frame header checksum [%04X]", $checksum);
+	#$self->debug(  "        Checking frame header checksum [%04X]", $checksum);
 	if ($checksum != $frame->{HEADER_CHECKSUM}) {
 		return 0;
 	}
 
 	# Check if UDP frame size <> SDNP header data length +  SDNP header size then:
-	$self->debug(  "        Checking UDP frame size [%d]", length($frame->{RAW}));
+	#$self->debug(  "        Checking UDP frame size [%d]", length($frame->{RAW}));
 	if (length($frame->{RAW}) != 12 + $frame->{LENGTH}) {
 		return 0;
 	}
 
 	# Check if frame id in SDNP header <> SDNP device protocol id then:
-	$self->debug(  "        Checking frame id [%04X]", $frame->{ID});
+	#$self->debug(  "        Checking frame id [%04X]", $frame->{ID});
 	if ($frame->{ID} != 0x7A2D) {
 		return 0;
 	}
@@ -463,14 +467,14 @@ sub _sdnpPrintFrame {
 	$self->debug($format, $tmpString);
 
 	my(%frame) = $self->_sdnpAnalyzeFrame($msg);
-	$self->debug("\t\t  ID..................[%04X]", $frame{ID});
-	$self->debug("\t\t  SN..................[%04X]", $frame{SN});
-	$self->debug("\t\t  OPCODE..............[  %02X]", $frame{OPCODE});
-	$self->debug("\t\t  OPDATA..............[  %02X]", $frame{OPDATA});
-	$self->debug("\t\t  LENGTH..............[%04X]", $frame{LENGTH});
-	$self->debug("\t\t  CHECKSUM............[%04X]", $frame{CHECKSUM});
-	$self->debug("\t\t  HEADER_CHECKSUM.....[%04X]", $frame{HEADER_CHECKSUM});
-	$self->debug("\t\t  DATA................[%s]", $frame{DATA});
+	#$self->debug("\t\t  ID..................[%04X]", $frame{ID});
+	#$self->debug("\t\t  SN..................[%04X]", $frame{SN});
+	#$self->debug("\t\t  OPCODE..............[  %02X]", $frame{OPCODE});
+	#$self->debug("\t\t  OPDATA..............[  %02X]", $frame{OPDATA});
+	#$self->debug("\t\t  LENGTH..............[%04X]", $frame{LENGTH});
+	#$self->debug("\t\t  CHECKSUM............[%04X]", $frame{CHECKSUM});
+	#$self->debug("\t\t  HEADER_CHECKSUM.....[%04X]", $frame{HEADER_CHECKSUM});
+	#$self->debug("\t\t  DATA................[%s]", $frame{DATA});
 
 	return; 
 }
@@ -494,6 +498,28 @@ sub _sdnpAnalyzeFrame {
 	return %retValue; 
 }
 
+sub _setTimer {
+	my($self) = shift @_;
+	my($t)    = shift @_;
+	my($msec) = shift @_;
+
+	my($realtime, $user, $system, $cuser, $csystem) = POSIX::times();
+
+	$self->{$t}->{START}    = $realtime/$clock_ticks;
+	$self->{$t}->{DURATION} = $msec; 
+}
+
+sub _getTimer {
+	my($self) = shift @_;
+	my($t)    = shift @_;
+
+	my($realtime, $user, $system, $cuser, $csystem) = POSIX::times();
+
+	#$self->debug("      TIMER[%s]: %4.4f - %4.4f", $t, $realtime/$clock_ticks - $self->{$t}->{START}, $self->{$t}->{DURATION});
+
+	return $realtime/$clock_ticks - $self->{$t}->{START} - $self->{$t}->{DURATION};
+}
+
 # Preloaded methods go here.
 
 1;
@@ -510,7 +536,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.20.
+This is version 0.39_01.
 
 =head1 AUTHOR
 

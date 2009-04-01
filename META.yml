@@ -1,8 +1,8 @@
 --- #YAML:1.0
 name:                EAFDSS
-version:             0.20
+version:             0.39_01
 abstract:            Electronic Fiscal Signature Devices Library
-license:             ~
+license:             lgpl
 author:              
     - Hasiotis Nikos (hasiotis@gmail.com)
 generated_by:        ExtUtils::MakeMaker version 6.42
@@ -10,13 +10,11 @@ distribution_type:   module
 requires:     
     Carp:                          1.04
     Class::Base:                   0.03
-    Config::IniHash:               3
-    Device::SerialPort:            1
+    Config::IniFiles:              2.38
     Digest::SHA1:                  2.11
     IO::Socket::INET:              1.31
     Socket:                        1.78
     Switch:                        2.1
-    Time::HiRes:                   1.86
 meta-spec:
     url:     http://module-build.sourceforge.net/META-spec-v1.3.html
     version: 1.3

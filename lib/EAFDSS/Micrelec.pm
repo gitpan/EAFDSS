@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Micrelec.pm 58 2009-03-19 22:01:46Z hasiotis $
+# ID: $Id: Micrelec.pm 65 2009-03-30 14:15:30Z hasiotis $
 
 package EAFDSS::Micrelec;
 
@@ -13,11 +13,10 @@ use warnings;
 use Switch;
 use Carp;
 use Class::Base;
-use Data::Dumper;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.20';
+our($VERSION) = '0.39_01';
 
 sub PROTO_DetailSign {
 	my($self) = shift @_;
@@ -396,7 +395,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.20.
+This is version 0.39_01.
 
 =head1 AUTHOR
 
