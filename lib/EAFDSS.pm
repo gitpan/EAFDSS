@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: EAFDSS.pm 65 2009-03-30 14:15:30Z hasiotis $
+# ID: $Id: EAFDSS.pm 76 2009-04-02 20:55:44Z hasiotis $
 
 package EAFDSS;
 
@@ -15,7 +15,7 @@ use Class::Base;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.39_01';
+our($VERSION) = '0.40';
 
 sub init {
 	my($self, $config) = @_;
@@ -367,8 +367,7 @@ The EAFDSS is free Open Source software. IT COMES WITHOUT WARRANTY OF ANY KIND.
 
 =head1 VERSION
 
-This is version 0.39_01. This version has a finalised API and full functionallity but still contains known bugs. NOT TO BE
-USED IN A PRODUCTION ENVIRONMENT.
+This is version 0.40. This version is beta. Suitable for developers wishing to be ready when the software will go stable.
 
 =head1 AUTHOR
 

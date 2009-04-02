@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 71 2009-03-31 22:28:37Z hasiotis $
+# ID: $Id: SDNP.pm 76 2009-04-02 20:55:44Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -19,7 +19,7 @@ use IO::Socket::INET;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.39_01';
+our($VERSION) = '0.40';
 
 my($clock_ticks);
 if ( $^O =~ /MSWin32/ ) {
@@ -536,7 +536,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.39_01.
+This is version 0.40.
 
 =head1 AUTHOR
 

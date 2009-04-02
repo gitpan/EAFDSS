@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDSP.pm 72 2009-04-01 05:49:23Z hasiotis $
+# ID: $Id: SDSP.pm 76 2009-04-02 20:55:44Z hasiotis $
 
 package EAFDSS::SDSP;
 
@@ -17,7 +17,7 @@ use Class::Base;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.39_01';
+our($VERSION) = '0.40';
 
 my($control) = {
 		'ACK' => chr(0x06),
@@ -225,7 +225,7 @@ Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.39_01.
+This is version 0.40.
 
 =head1 AUTHOR
 
