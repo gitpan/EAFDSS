@@ -3,11 +3,21 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Dummy.pm 76 2009-04-02 20:55:44Z hasiotis $
+# ID: $Id: Dummy.pm 88 2009-04-08 15:21:04Z hasiotis $
 
 package EAFDSS::Dummy;
 
-use 5.006001;
+=head1 NAME
+
+EAFDSS::Dummy - EAFDSS Driver for a Dummy filesystem based device 
+
+=head1 DESCRIPTION
+
+Read EAFDSS on how to use the module.
+
+=cut
+
+use 5.6.0;
 use strict;
 use warnings;
 use Carp;
@@ -18,7 +28,15 @@ use Config::IniFiles;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.40';
+our($VERSION) = '0.60';
+
+=head1 Methods
+
+=head2 init
+
+init
+
+=cut
 
 sub init {
 	my($class)  = shift @_;
@@ -43,6 +61,7 @@ sub init {
 		print(DUMMY "CUR_FISCAL = 1\n");
 		print(DUMMY "CUR_SIGN   = 1\n");
 		print(DUMMY "TOTAL_SIGN = 1\n\n");
+		print(DUMMY "CMOS_ERROR = 0\n\n");
 		print(DUMMY "[FISCAL]\n\n");
 		print(DUMMY "[SIGNS]\n");
 		close(DUMMY);
@@ -50,6 +69,14 @@ sub init {
 
 	return $self;
 }
+
+=head1 Methods
+
+=head2 PROTO_GetSign
+
+PROTO_GetSign  
+
+=cut
 
 sub PROTO_GetSign {
 	my($self)    = shift @_;
@@ -82,12 +109,19 @@ sub PROTO_GetSign {
 	$invoice .= sprintf("%s%08d%04d%s%s", $self->{SN}, $totalSigns, $dailySigns, $self->UTIL_date6ToHost($date), $self->UTIL_time6toHost($time));
 
 	$sign = uc(sha1_hex($invoice));
-	$dummy->newval('SIGNS', $dailySigns,  $sign);
+	my($sign_entry) = sprintf("%s,%s,%s,%s,%s",  $date, $time, $dailySigns, $totalSigns, $sign);
+	$dummy->newval('SIGNS', $dailySigns,  $sign_entry);
 
 	$dummy->RewriteConfig();
 
 	return (0, $totalSigns, $dailySigns, $date, $time, $nextZ, $sign);
 }
+
+=head2 PROTO_SetHeader
+
+PROTO_SetHeader
+
+=cut
 
 sub PROTO_SetHeader {
 	my($self)    = shift @_;
@@ -97,16 +131,35 @@ sub PROTO_SetHeader {
 	return 64+04;
 }
 
+=head2 PROTO_GetStatus
+
+PROTO_GetStatus
+
+=cut
+
 sub PROTO_GetStatus {
 	my($self) = shift @_;
 
 	$self->debug("  [PROTO] Get Status");
 	if (-e $self->{FILENAME}) {
-		return (0, 0, 0);
+		$self->debug("  [SPECIAL] Setting CMOS to error");
+		my($dummy) = Config::IniFiles->new(-file => $self->{FILENAME});
+		my($cmos) = $dummy->val('MAIN', 'CMOS_ERROR');
+		if ($cmos) {
+			return (0, "00010000", 0);
+		} else {
+			return (0, 0, 0);
+		}
 	} else {
 		return ($self->error());
 	}
 }
+
+=head2 PROTO_GetHeader
+
+PROTO_GetHeader
+
+=cut
 
 sub PROTO_GetHeader {
 	my($self) = shift @_;
@@ -114,6 +167,12 @@ sub PROTO_GetHeader {
 	$self->debug("  [PROTO] Get Headers");
 	return 64+04;
 }
+
+=head2 PROTO_ReadTime
+
+PROTO_ReadTime
+
+=cut
 
 sub PROTO_ReadTime {
 	my($self) = shift @_;
@@ -123,6 +182,12 @@ sub PROTO_ReadTime {
 	return (0, sprintf("%02d/%02d/%02d %02d:%02d:%02d", $mday, $mon+1, $year-100, $hour, $min, $sec));
 }
 
+=head2 PROTO_SetTime
+
+PROTO_SetTime
+
+=cut
+
 sub PROTO_SetTime {
 	my($self) = shift @_;
 	my($time) = shift @_;
@@ -130,6 +195,12 @@ sub PROTO_SetTime {
 	$self->debug("  [PROTO] Set Time");
 	return 64+04;
 }
+
+=head2 PROTO_ReadDeviceID
+
+PROTO_ReadDeviceID
+
+=cut
 
 sub PROTO_ReadDeviceID {
 	my($self) = shift @_;
@@ -145,6 +216,12 @@ sub PROTO_ReadDeviceID {
 	}
 }
 
+=head2 PROTO_VersionInfo
+
+PROTO_VersionInfo
+
+=cut
+
 sub PROTO_VersionInfo {
 	my($self) = shift @_;
 
@@ -159,46 +236,58 @@ sub PROTO_VersionInfo {
 	}
 }
 
+=head2 PROTO_ReadSignEntry
+
+PROTO_ReadSignEntry
+
+=cut
+
 sub PROTO_ReadSignEntry {
 	my($self)  = shift @_;
 	my($index) = shift @_;
 
 	$self->debug("  [PROTO] Read Sign Entry");
-	my(%reply) = $self->SendRequest(0x21, 0x00, "\$/$index");
+	my($dummy) = Config::IniFiles->new(-file => $self->{FILENAME});
 
-	if (%reply) {
-		my($replyCode, $status1, $status2, $totalSigns, $dailySigns, $date, $time, $sign, $sn, $closure) = split(/\//, $reply{DATA});
-		return (hex($replyCode), $status1, $status2, $totalSigns, $dailySigns, $date, $time, $sign, $sn, $closure);
+	if ($dummy) {
+		my($date, $time, $dailySigns, $totalSigns, $sign, $closure) = split(/,/, $dummy->val('SIGNS', $index)); 
+		return (0, 1, 1, $totalSigns, $dailySigns, $date, $time, $sign, $self->{SN}, $closure);
 	} else {
 		return (-1);
 	}
+
 }
+
+=head2 PROTO_ReadClosure
+
+PROTO_ReadClosure
+
+=cut
 
 sub PROTO_ReadClosure {
 	my($self)  = shift @_;
 	my($index) = shift @_;
-	my(%reply, $replyCode, $status1, $status2, $totalSigns, $dailySigns, $date, $time, $z, $sn, $closure, $curZ);
+	my(%reply, $replyCode, $z, $curZ, $date, $time, $dailySigns, $totalSigns, $closure);
 
 	$self->debug("  [PROTO] Read Closure [%d]", $index);
 	my($dummy) = Config::IniFiles->new(-file => $self->{FILENAME});
 
-	my($sec, $min, $hour, $mday, $mon, $year) = localtime();
-	$date = sprintf("%02d%02d%02d", $mday, $mon+1, $year - 100); 
-	$time = sprintf("%02d%02d%02d", $hour, $min, $sec);
-
-	$totalSigns = $dummy->val('MAIN', 'TOTAL_SIGN');
-	$dailySigns = $dummy->val('MAIN', 'CUR_SIGN');
-	$curZ       = $dummy->val('MAIN', 'CUR_FISCAL');
-
+	$curZ = $dummy->val('MAIN', 'CUR_FISCAL');
 	if ($index == 0) {
-		$z = $dummy->val('FISCAL', $curZ-1);
+		($date, $time, $dailySigns, $totalSigns, $z) = split(/,/, $dummy->val('FISCAL', $curZ-1)); 
 	} else {
-		$z = $dummy->val('FISCAL', $index);
+		($date, $time, $dailySigns, $totalSigns, $z) = split(/,/, $dummy->val('FISCAL', $index)); 
 	}
 	$closure    = $curZ-1;
 
 	return (0, 1, 1, $totalSigns, $dailySigns, $self->UTIL_date6ToHost($date), $self->UTIL_time6toHost($time), $z, $self->{SN}, $closure);
 }
+
+=head2 PROTO_ReadSummary
+
+PROTO_ReadSummary
+
+=cut
 
 sub PROTO_ReadSummary {
 	my($self)  = shift @_;
@@ -215,6 +304,12 @@ sub PROTO_ReadSummary {
 
 	return (0, 0, 0, $lastZ-1, $totalSigns-1, $dailySigns-1, 0, $maxSigns - $dailySigns + 1);
 }
+
+=head2 PROTO_IssueReport
+
+PROTO_IssueReport
+
+=cut
 
 sub PROTO_IssueReport {
 	my($self)  = shift @_;
@@ -244,13 +339,20 @@ sub PROTO_IssueReport {
 		$dummy->delval('SIGNS', $i);
 	}
 
-	$dummy->newval('FISCAL', $lastZ, $z);
+	my($z_entry) = sprintf("%s,%s,%s,%s,%s",  $date, $time, $dailySigns, $totalSigns, $z);
+	$dummy->newval('FISCAL', $lastZ, $z_entry);
 	$dummy->newval('MAIN', 'CUR_SIGN', 1);
 
 	$dummy->RewriteConfig();
 
 	return (0);
 }
+
+=head2 errMessage
+
+errMessage
+
+=cut
 
 sub errMessage {
 	my($self)    = shift @_;
@@ -306,6 +408,12 @@ sub errMessage {
 	}
 }
 
+=head2 UTIL_devStatus
+
+UTIL_devStatus
+
+=cut
+
 sub UTIL_devStatus {
 	my($self)   = shift @_;
 	my($status) = sprintf("%08b", shift);
@@ -316,6 +424,12 @@ sub UTIL_devStatus {
 
 	return ($busy, $fatal, $paper, $cmos, $printer, $user, $fiscal, $battery);
 }
+
+=head2 UTIL_appStatus
+
+UTIL_appStatus
+
+=cut
 
 sub UTIL_appStatus {
 	my($self)   = shift @_;
@@ -329,6 +443,12 @@ sub UTIL_appStatus {
 	return ($day, $signature, $recovery, $fiscalWarn, $dailyFull, $fiscalFull);
 }
 
+=head2 UTIL_date6ToHost
+
+UTIL_date6ToHost
+
+=cut
+
 sub UTIL_date6ToHost {
 	my($self) = shift @_;
 	my($var) = shift @_;
@@ -337,6 +457,12 @@ sub UTIL_date6ToHost {
 
 	return $var;
 }
+
+=head2 UTIL_time6toHost
+
+UTIL_time6toHost
+
+=cut
 
 sub UTIL_time6toHost {
 	my($self) = shift @_;
@@ -347,20 +473,29 @@ sub UTIL_time6toHost {
 	return $var;
 }
 
+sub _SetCMOSError {
+	my($self) = shift @_;
+	my($i);
+
+	$self->debug("  [SPECIAL] Setting CMOS to error");
+	my($dummy) = Config::IniFiles->new(-file => $self->{FILENAME});
+
+	$dummy->newval('MAIN', 'CMOS_ERROR', 1);
+	for ($i=1; $i < $dummy->val('MAIN', 'CUR_SIGN'); $i++) {
+		$dummy->delval('SIGNS', $i);
+	}
+	$dummy->newval('MAIN', 'CUR_SIGN', 1);
+
+	$dummy->RewriteConfig();
+}
+
 # Preloaded methods go here.
 
 1;
-=head1 NAME
-
-EAFDSS::Dummy - EAFDSS Driver for a Dummy filesystem based device 
-
-=head1 DESCRIPTION
-
-Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.40.
+This is version 0.60.
 
 =head1 AUTHOR
 

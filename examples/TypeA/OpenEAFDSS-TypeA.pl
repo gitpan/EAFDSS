@@ -19,16 +19,17 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS-TypeA.pl 76 2009-04-02 20:55:44Z hasiotis $
+# ID: $Id: OpenEAFDSS-TypeA.pl 88 2009-04-08 15:21:04Z hasiotis $
 
 use strict;
 use Config::IniFiles;
 use Data::Dumper;
 use Curses::UI;
+use DBI;
 use EAFDSS; 
 
 
-my($cfg) = Config::IniFiles->new(-file => "OpenEAFDSS-TypeA.ini", -nocase => 1);
+my($cfg) = Config::IniFiles->new(-file => "/etc/OpenEAFDSS/OpenEAFDSS-TypeA.ini", -nocase => 1);
 
 my($ABC_DIR) = $cfg->val('MAIN', 'ABC_DIR', '/tmp/signs');
 my($SQLITE)  = $cfg->val('MAIN', 'SQLITE', '/tmp/eafdss.sqlite');
@@ -603,15 +604,163 @@ sub loadDriverHandle {
 	return $dh;
 }
 
+sub reprintInvoice {
+	my($text) = shift @_;
+	my($sign) = shift @_;
+
+	my($tmp_fname) = "/tmp/reprint-eafdsss.$$";
+	open(FH, ">", $tmp_fname) || die "Error opening file $tmp_fname";
+	printf(FH $text);
+	close(FH);
+
+	system(sprintf('lp -d PDF -o "eafddssreprint=%s" %s', $sign, $tmp_fname));
+	
+	unlink($tmp_fname);
+}
+
 sub browseInvoiceDialog {
-	$cui->dialog(
+	my($winBrowseInvoices) = $cui->add(
+		'winBrowseInvoices', 'Window',
+		-title		=> 'Browse Invoices',
+		-width          => 74,
+		-height         => 22,
+		-border         => 1,
+		-padtop         => 2,
+		-padbottom      => 2,
+		-padleft        => 2,
+		-padright       => 2,
+		-ipad           => 1,
 		-fg  => 'cyan', -bg  => 'black',
 		-tfg => 'blue', -tbg => 'cyan',
 		-bfg => 'blue', -bbg => 'black',
-		-title => "Help",
-		-message =>
-			"This will browse one by one previously signed invoices" . "\n"
 	);
+	
+	my($dbh);
+	if ( -e $SQLITE) {
+		$dbh = DBI->connect("dbi:SQLite:dbname=$SQLITE","","");
+	} else {
+		$dbh = DBI->connect("dbi:SQLite:dbname=$SQLITE","","");
+		if ($dbh)  {
+			$dbh->do("CREATE TABLE invoices" . 
+				" (id INTEGER PRIMARY KEY, tm,  job_id, user, job_name, copies, options, signature, text);" );
+		}
+	}
+	unless ($dbh)  {
+		$cui->dialog(
+			-fg  => 'cyan', -bg  => 'black',
+			-tfg => 'blue', -tbg => 'cyan',
+			-bfg => 'blue', -bbg => 'black',
+			-title => "Error",
+			-message => "Error opening SQLite DB" 
+		);
+		$winBrowseInvoices->loose_focus();
+		$cui->delete('winBrowseInvoices');
+	}
+
+	my($invoices, $invoices_text, $invoices_signature, $keys, $ref);
+	my($sth) = $dbh->prepare("SELECT id, tm, signature, job_name, text FROM invoices;");
+	my($rv) = $sth->execute;
+	while ( $ref = $sth->fetchrow_hashref() ) 
+	{
+		push(@$keys, $$ref{'id'});
+		$invoices->{$$ref{'id'}} = $$ref{'id'} . ". " . $$ref{'job_name'} . " -- ( Date: " .  $$ref{'tm'}. " )";
+		$invoices_text->{$$ref{'id'}} = $$ref{'text'};
+		$invoices_signature->{$$ref{'id'}} = $$ref{'signature'};
+	}
+
+	my($lbInvoice) = $winBrowseInvoices->add(
+		"lbInvoice", "Listbox", 
+		-values    => $keys,
+		-labels    => $invoices,
+		-fg     => 'white', -bg     => 'black',
+		-x      => 1, -y      => 1,
+		-height => 10, -width  => 64,
+		-maxlength => 60,
+			-fg  => 'cyan', -bg  => 'black',
+			-tfg => 'blue', -tbg => 'cyan',
+	);
+
+	my($browseInvoiceCancel) = sub {
+		$winBrowseInvoices->loose_focus();
+		$cui->delete('winBrowseInvoices');
+	};
+
+	my($browseInvoiceOK) = sub {
+		my($winInvoice) = $cui->add(
+			'winInvoice', 'Window',
+			-title		=> 'View Invoice',
+			-width          => 74,
+			-height         => 22,
+			-border         => 1,
+			-padtop         => 2,
+			-padbottom      => 2,
+			-padleft        => 2,
+			-padright       => 2,
+			-ipad           => 1,
+			-centered       => 1,
+			-fg  => 'cyan', -bg  => 'black',
+			-tfg => 'blue', -tbg => 'cyan',
+			-bfg => 'blue', -bbg => 'black',
+		);
+		my($viewInvoice) = $winInvoice->add( 
+			'viewInvoice', 'TextViewer',
+			-vscrollbar     => 1,
+			-wrapping       => 1,
+			-width          => 74,
+			-height         => 10,
+			-text => $invoices_text->{$lbInvoice->get()}
+		);
+
+		my($btnBox) = $winInvoice->add(
+			"btnBox", "Buttonbox" ,
+			-y => -1,
+			-buttons => [
+				{ -label    => '< OK >',
+				  -shortcut => 'o',
+				  -value    => 1,
+				  -onpress  =>  sub {
+							$winInvoice->loose_focus();
+							$cui->delete('winInvoice');
+							$winBrowseInvoices->focus();
+							$winBrowseInvoices->modalfocus();
+        					},
+				},
+				{ -label    => '< RePrint>',
+				  -shortcut => 'p',
+				  -value    => 0,
+				  -onpress  => sub {
+							reprintInvoice($invoices_text->{$lbInvoice->get()}, $invoices_signature->{$lbInvoice->get()});
+							$winInvoice->loose_focus();
+							$cui->delete('winInvoice');
+							$winBrowseInvoices->focus();
+							$winBrowseInvoices->modalfocus();
+						}
+				}
+			],
+			-buttonalignment => 'middle'
+		);
+
+		$winInvoice->modalfocus();
+	};
+
+	my($btnBox) = $winBrowseInvoices->add(
+		"btnBox", "Buttonbox" ,
+		-y => -1,
+		-buttons => [
+			{ -label    => '< OK >',
+			  -shortcut => 'o',
+			  -value    => 1,
+			  -onpress  => $browseInvoiceOK},
+			{ -label    => '< Cancel >',
+			  -shortcut => 'c',
+			  -value    => 0,
+			  -onpress  => $browseInvoiceCancel}
+		],
+		-buttonalignment => 'middle'
+	);
+
+	$winBrowseInvoices->focus();
+	$winBrowseInvoices->modalfocus();
 }
 
 sub searchInvoiceDialog {
@@ -654,7 +803,7 @@ sub aboutDialog {
 		-bfg => 'blue', -bbg => 'black',
 		-title => "About OpenEAFDSS",
 		-message =>
-			"OpenEAFDSS-GUI.pl ver 0.40 - Copyright (C) 2008 by Hasiotis Nikos " . "\n" .
+			"OpenEAFDSS-GUI.pl ver 0.60 - Copyright (C) 2008 by Hasiotis Nikos " . "\n" .
 			"                                                                     " . "\n" .
 			"This program is free software: you can redistribute it and/or modify " . "\n" .
 			"it under the terms of the GNU General Public License as published by " . "\n" .

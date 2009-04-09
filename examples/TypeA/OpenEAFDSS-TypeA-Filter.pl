@@ -31,14 +31,18 @@ use Config::IniFiles;
 my(%progie) = ( name      => 'OpenEAFDSS-TypeA-Filter.pl',
                 author    => 'Nikos Hasiotis (hasiotis@gmail.com)',
                 copyright => 'Copyright (c) 2008 Hasiotis Nikos, all rights reserved',
-                version   => '0.40');
+                version   => '0.39_01');
 
 our($debug) = 1;
 
 sub main {
 	my($job_id, $user, $job_name, $copies, $options, $fname, $sandbox);
 
+	unless ( defined $ENV{'TMPDIR'} ) {
+		$ENV{'TMPDIR'} = "/tmp";
+	}
 	$sandbox = sprintf("%s/OpenEAFDSS-TMP-%s", $ENV{'TMPDIR'}, $$);
+
 	if ($#ARGV < 5) {
 		umask(077);
 		if (! mkdir($sandbox) ) {
@@ -47,6 +51,14 @@ sub main {
 		}
 		$fname = sprintf("%s/JOB-TEMP-FILE-01", $sandbox); 
 		printf(STDERR "NOTICE: [OpenEAFDSS] (STDIN) Signing file [%s]\n", $fname);
+
+		open(FIN, "<-") || die "Error Opening STDIN ($!)";
+		open(FOUT, ">", $fname) || die "Error Opening TMPFILE ($!)";
+		while (<FIN>) { printf(FOUT $_) };
+		close(FOUT);
+		close(FIN);
+
+		($job_id, $user, $job_name, $copies, $options) = ('', '', '', '', '');
 	} else {
 		($job_id, $user, $job_name, $copies, $options, $fname) = @ARGV;
 		printf(STDERR "NOTICE: [OpenEAFDSS] Signing file [%s]\n", $fname);
@@ -61,32 +73,73 @@ sub main {
 	my($DRIVER)  = $cfg->val('DEVICE', 'DRIVER', 'SDNP');
 	my($PARAM)   = $cfg->val('DEVICE', 'PARAM', 'localhost');
 
-	my($dh) = new EAFDSS(
-			"DRIVER" => "EAFDSS::" . $DRIVER . "::" . $PARAM,
-			"SN"     => $SN,
-			"DIR"    => $ABC_DIR,
-			"DEBUG"  => $debug
-		);
-
-	if (! $dh) {
-		print(STDERR "ERROR: [OpenEAFDSS]" . EAFDSS->error() ."\n");
+	my($dbh);
+	if ( -e $SQLITE) {
+		$dbh = DBI->connect("dbi:SQLite:dbname=$SQLITE","","");
+	} else {
+		$dbh = DBI->connect("dbi:SQLite:dbname=$SQLITE","","");
+		if ($dbh)  {
+			$dbh->do("CREATE TABLE invoices" . 
+				" (id INTEGER PRIMARY KEY, tm,  job_id, user, job_name, copies, options, signature, text);" );
+		}
+	}
+	unless ($dbh)  {
+		printf(STDERR "ERROR: [OpenEAFDSS] Cannot connect to sqlite db [%s]! Exiting\n", $SQLITE);
 		exit 1;
 	}
-  
-	my($signature) = $dh->Sign($fname);
-	if (! $signature) {
-		my($errNo)  = $dh->error();
-		my($errMsg) = $dh->errMessage($errNo);
-		printf(STDERR "ERROR: [OpenEAFDSS] [0x%02X] %s\n", $errNo, $errMsg);
-		exit($errNo);
+
+	my($reprint, $signature);
+	if ( $options =~ m/eafddssreprint/ ) {
+		$options =~ /eafddssreprint=(.*) /;
+		$reprint = $1;
 	} else {
-		printf(STDERR "NOTICE: [OpenEAFDSS] Got sign [%s]\n", $signature);
+		$reprint = 0;
 	}
 
+	if ($reprint) {
+		$signature = $reprint;
+	} else {
+		my($dh) = new EAFDSS(
+				"DRIVER" => "EAFDSS::" . $DRIVER . "::" . $PARAM,
+				"SN"     => $SN,
+				"DIR"    => $ABC_DIR,
+				"DEBUG"  => $debug
+			);
+
+		if (! $dh) {
+			print(STDERR "ERROR: [OpenEAFDSS]" . EAFDSS->error() ."\n");
+			exit 1;
+		}
+  
+		$signature = $dh->Sign($fname);
+		if (! $signature) {
+			my($errNo)  = $dh->error();
+			my($errMsg) = $dh->errMessage($errNo);
+			printf(STDERR "ERROR: [OpenEAFDSS] [0x%02X] %s\n", $errNo, $errMsg);
+			exit($errNo);
+		} else {
+			printf(STDERR "NOTICE: [OpenEAFDSS] Got sign [%s]\n", $signature);
+		}
+	}
+
+	open(FH, $fname);
+	my($invoice) = do { local($/); <FH> };
+	close(FH);
+
+	if ($reprint == 0) {
+		$invoice =~ s/'/''/g;
+
+		my($insert) = "INSERT INTO invoices (tm,  job_id, user, job_name, copies, options, signature, text) " . 
+                        " VALUES ( date('now'), '$job_id', '$user', '$job_name', '$copies', '$options', '$signature', '$invoice');";
+
+		print $insert;
+		$dbh->do($insert) or die("NOTICE: [OpenEAFDSS] Insert Error [%s]\n", $dbh->errstr);
+	}
+
+	$dbh->disconnect();
+
 	open(FH, "<", $fname) || exit;
-	while (<FH>) {
-		print $_;
-	};
+	while (<FH>) { print $_; };
 	close(FH);
 
 	printf(" %s \n", $signature);

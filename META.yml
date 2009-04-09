@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                EAFDSS
-version:             0.40
+version:             0.60
 abstract:            Electronic Fiscal Signature Devices Library
 license:             lgpl
 author:              

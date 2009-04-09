@@ -3,11 +3,21 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Base.pm 76 2009-04-02 20:55:44Z hasiotis $
+# ID: $Id: Base.pm 88 2009-04-08 15:21:04Z hasiotis $
 
 package EAFDSS::Base;
 
-use 5.006001;
+=head1 NAME
+
+EAFDSS::Base - EAFDSS Base Class Driver for all other drivers
+
+=head1 DESCRIPTION
+
+Read EAFDSS on how to use the module.
+
+=cut
+
+use 5.6.0;
 use strict;
 use warnings;
 use Carp;
@@ -15,7 +25,15 @@ use Class::Base;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.40';
+our($VERSION) = '0.60';
+
+=head1 Methods
+
+=head2 init
+
+init
+
+=cut
 
 sub init {
 	my($self, $config) = @_;
@@ -34,6 +52,12 @@ sub init {
 
 	return $self;
 }
+
+=head2 Sign
+
+Sign
+
+=cut
 
 sub Sign {
         my($self)  = shift @_;
@@ -96,6 +120,12 @@ sub _checkCharacters {
 	return 0;
 }
 
+=head2 Status
+
+Status
+
+=cut
+
 sub Status {
         my($self) = shift @_;
 
@@ -111,6 +141,12 @@ sub Status {
 }
 
 
+=head2 GetTime
+
+GetTime
+
+=cut
+
 sub GetTime {
         my($self) = shift @_;
 
@@ -122,6 +158,12 @@ sub GetTime {
 		return $self->error($reply);
 	}
 }
+
+=head2 SetTime
+
+SetTime
+
+=cut
 
 sub SetTime {
         my($self) = shift @_;
@@ -135,6 +177,12 @@ sub SetTime {
 		return $self->error($reply);
 	}
 }
+
+=head2 Report
+
+Report
+
+=cut
 
 sub Report {
         my($self) = shift @_;
@@ -181,6 +229,12 @@ sub _RecoveryReport {
         return $z;
 }
 
+=head2 Info
+
+Info
+
+=cut
+
 sub Info {
         my($self) = shift @_;
 
@@ -192,6 +246,12 @@ sub Info {
 		return $self->error($reply);
 	}
 }
+
+=head2 Query
+
+Query
+
+=cut
 
 sub Query {
         my($self) = shift @_;
@@ -209,6 +269,12 @@ sub Query {
 	}
 }
 
+=head2 GetHeaders 
+
+GetHeaders
+
+=cut
+
 sub GetHeaders {
         my($self) = shift @_;
 
@@ -220,6 +286,12 @@ sub GetHeaders {
 		return $self->error($reply);
 	}
 }
+
+=head2 SetHeaders 
+
+SetHeaders
+
+=cut
 
 sub SetHeaders {
         my($self)    = shift @_;
@@ -450,6 +522,12 @@ sub DESTROY {
         #printfv("Destroying %s %s",  $self, $self->name );
 }
 
+=head2 debug
+
+debug
+
+=cut
+
 sub debug {
 	my($self)  = shift;
 	my($flag);
@@ -474,17 +552,10 @@ sub debug {
 1;
 __END__
 
-=head1 NAME
-
-EAFDSS::Base - EAFDSS Base Class Driver for all other drivers
-
-=head1 DESCRIPTION
-
-Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.40.
+This is version 0.60.
 
 =head1 AUTHOR
 

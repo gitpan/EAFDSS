@@ -3,11 +3,21 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDSP.pm 76 2009-04-02 20:55:44Z hasiotis $
+# ID: $Id: SDSP.pm 88 2009-04-08 15:21:04Z hasiotis $
 
 package EAFDSS::SDSP;
 
-use 5.006001;
+=head1 NAME
+
+EAFDSS::SDSP - EAFDSS Driver for Micrelec SDSP Devices
+
+=head1 DESCRIPTION
+
+Read EAFDSS on how to use the module.
+
+=cut
+
+use 5.6.0;
 use strict;
 use warnings;
 use POSIX;
@@ -17,7 +27,7 @@ use Class::Base;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.40';
+our($VERSION) = '0.60';
 
 my($control) = {
 		'ACK' => chr(0x06),
@@ -27,6 +37,12 @@ my($control) = {
 		'CAN' => chr(0x18),
 		'ENQ' => chr(0x05)
 	};
+
+=head2 init
+
+init
+
+=cut
 
 sub init {
 	my($class)  = shift @_;
@@ -79,6 +95,12 @@ sub init {
 
 	return $self;
 }
+
+=head2 SendRequest
+
+SendRequest
+
+=cut
 
 sub SendRequest {
 	my($self)   = shift @_;
@@ -214,18 +236,10 @@ sub _checksum {
 1;
 __END__
 
-=head1 NAME
-
-EAFDSS::SDSP - EAFDSS Driver for Micrelec SDSP Devices
-
-
-=head1 DESCRIPTION
-
-Read EAFDSS on how to use the module.
 
 =head1 VERSION
 
-This is version 0.40.
+This is version 0.60.
 
 =head1 AUTHOR
 

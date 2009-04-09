@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS.pl 74 2009-04-02 18:13:59Z hasiotis $
+# ID: $Id: OpenEAFDSS.pl 88 2009-04-08 15:21:04Z hasiotis $
 
 use strict;
 use Switch;
@@ -30,7 +30,7 @@ use Config::General qw(ParseConfig);
 my(%progie) = ( name      => 'OpenEAFDSS.pl',
                 author    => 'Nikos Hasiotis (hasiotis@gmail.com)',
                 copyright => 'Copyright (c) 2008 Hasiotis Nikos, all rights reserved',
-                version   => '0.20');
+                version   => '0.60');
 
 sub main() {
         my($verbal, $driver, $params, $serial, $sDir, $cmd) = init_progie();
