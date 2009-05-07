@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDSP.pm 88 2009-04-08 15:21:04Z hasiotis $
+# ID: $Id: SDSP.pm 92 2009-05-05 08:45:00Z hasiotis $
 
 package EAFDSS::SDSP;
 
@@ -13,7 +13,8 @@ EAFDSS::SDSP - EAFDSS Driver for Micrelec SDSP Devices
 
 =head1 DESCRIPTION
 
-Read EAFDSS on how to use the module.
+Read EAFDSS on how to use the module. This module implements the part of the micrelec protocol
+specific to the serial model.
 
 =cut
 
@@ -27,7 +28,7 @@ use Class::Base;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.60';
+our($VERSION) = '0.70';
 
 my($control) = {
 		'ACK' => chr(0x06),
@@ -40,7 +41,7 @@ my($control) = {
 
 =head2 init
 
-init
+The constructor
 
 =cut
 
@@ -98,7 +99,7 @@ sub init {
 
 =head2 SendRequest
 
-SendRequest
+The serial version of SendRequest command.
 
 =cut
 
@@ -239,7 +240,7 @@ __END__
 
 =head1 VERSION
 
-This is version 0.60.
+This is version 0.70.
 
 =head1 AUTHOR
 

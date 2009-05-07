@@ -19,7 +19,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-# ID: $Id: OpenEAFDSS-TypeA.pl 88 2009-04-08 15:21:04Z hasiotis $
+# ID: $Id: OpenEAFDSS-TypeA.pl 92 2009-05-05 08:45:00Z hasiotis $
 
 use strict;
 use Config::IniFiles;
@@ -803,7 +803,7 @@ sub aboutDialog {
 		-bfg => 'blue', -bbg => 'black',
 		-title => "About OpenEAFDSS",
 		-message =>
-			"OpenEAFDSS-GUI.pl ver 0.60 - Copyright (C) 2008 by Hasiotis Nikos " . "\n" .
+			"OpenEAFDSS-GUI.pl ver 0.70 - Copyright (C) 2008 by Hasiotis Nikos " . "\n" .
 			"                                                                     " . "\n" .
 			"This program is free software: you can redistribute it and/or modify " . "\n" .
 			"it under the terms of the GNU General Public License as published by " . "\n" .

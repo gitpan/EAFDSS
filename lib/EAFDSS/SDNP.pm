@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 88 2009-04-08 15:21:04Z hasiotis $
+# ID: $Id: SDNP.pm 92 2009-05-05 08:45:00Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -13,7 +13,8 @@ EAFDSS::SDNP - EAFDSS Driver for Micrelec SDNP Devices
 
 =head1 DESCRIPTION
 
-Read EAFDSS on how to use the module.
+Read EAFDSS on how to use the module. This module implements the part of the micrelec protocol
+specific to the ethernet model.
 
 =cut
 
@@ -29,7 +30,7 @@ use IO::Socket::INET;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.60';
+our($VERSION) = '0.70';
 
 my($clock_ticks);
 if ( $^O =~ /MSWin32/ ) {
@@ -41,7 +42,7 @@ if ( $^O =~ /MSWin32/ ) {
 
 =head2 init
 
-init
+The constructor
 
 =cut
 
@@ -84,7 +85,7 @@ sub init {
 
 =head2 SendRequest
 
-SendRequest
+The ethernet version of SendRequest command.
 
 =cut
 
@@ -550,7 +551,7 @@ __END__
 
 =head1 VERSION
 
-This is version 0.60.
+This is version 0.70.
 
 =head1 AUTHOR
 
