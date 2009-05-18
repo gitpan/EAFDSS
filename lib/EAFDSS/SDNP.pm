@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: SDNP.pm 92 2009-05-05 08:45:00Z hasiotis $
+# ID: $Id: SDNP.pm 105 2009-05-18 10:52:03Z hasiotis $
 
 package EAFDSS::SDNP;
 
@@ -18,7 +18,7 @@ specific to the ethernet model.
 
 =cut
 
-use 5.6.0;
+use 5.006_000;
 use strict;
 use warnings;
 use POSIX;
@@ -30,7 +30,7 @@ use IO::Socket::INET;
 
 use base qw (EAFDSS::Micrelec );
 
-our($VERSION) = '0.70';
+our($VERSION) = '0.80';
 
 my($clock_ticks);
 if ( $^O =~ /MSWin32/ ) {
@@ -76,10 +76,12 @@ sub init {
 
 
 	my($reply, $deviceID) = $self->PROTO_ReadDeviceID();
+	$self->debug("  Read device ID");
 	if ( ($reply == 0) && ($deviceID ne $self->{SN}) ) {
 		return $self->error("Serial Number not matching");
 	}
 
+	$self->debug("  Init OK");
 	return $self;
 }
 
@@ -551,7 +553,7 @@ __END__
 
 =head1 VERSION
 
-This is version 0.70.
+This is version 0.80.
 
 =head1 AUTHOR
 

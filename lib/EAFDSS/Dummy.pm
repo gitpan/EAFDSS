@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Dummy.pm 92 2009-05-05 08:45:00Z hasiotis $
+# ID: $Id: Dummy.pm 105 2009-05-18 10:52:03Z hasiotis $
 
 package EAFDSS::Dummy;
 
@@ -21,7 +21,7 @@ or the emulator
 
 =cut
 
-use 5.6.0;
+use 5.006_000;
 use strict;
 use warnings;
 use Carp;
@@ -32,7 +32,7 @@ use Config::IniFiles;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.70';
+our($VERSION) = '0.80';
 
 =head1 Methods
 
@@ -463,7 +463,7 @@ sub _SetCMOSError {
 
 =head1 VERSION
 
-This is version 0.70.
+This is version 0.80.
 
 =head1 AUTHOR
 

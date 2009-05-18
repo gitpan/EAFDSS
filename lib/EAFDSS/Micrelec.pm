@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: Micrelec.pm 92 2009-05-05 08:45:00Z hasiotis $
+# ID: $Id: Micrelec.pm 105 2009-05-18 10:52:03Z hasiotis $
 
 package EAFDSS::Micrelec;
 
@@ -19,7 +19,7 @@ EAFDSS driver.
 
 =cut
 
-use 5.6.0;
+use 5.006_000;
 use strict;
 use warnings;
 use Switch;
@@ -28,7 +28,7 @@ use Class::Base;
 
 use base qw ( EAFDSS::Base );
 
-our($VERSION) = '0.70';
+our($VERSION) = '0.80';
 
 =head1 Methods
 
@@ -59,12 +59,11 @@ sub PROTO_GetSign {
 
 	my($chunk, %reply);
 	$self->debug("  [PROTO] Get Sign");
-	do {
+	%reply = $self->SendRequest(0x21, 0x00, "{/0");
+	if ($reply{DATA} =~ /^18/) {
+		$self->PROTO_IssueReport();
 		%reply = $self->SendRequest(0x21, 0x00, "{/0");
-		if ($reply{DATA} =~ /^0E/) {
-			sleep 1;
-		}
-	} until ($reply{DATA} !~ /^0E/);
+	}
 
 	if (! exists $reply{OPCODE}) {
 		$reply{OPCODE} = 0x22;
@@ -486,7 +485,7 @@ sub UTIL_time6toHost {
 
 =head1 VERSION
 
-This is version 0.70.
+This is version 0.80.
 
 =head1 AUTHOR
 

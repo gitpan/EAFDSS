@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Hasiotis Nikos
 #
-# ID: $Id: EAFDSS.pm 92 2009-05-05 08:45:00Z hasiotis $
+# ID: $Id: EAFDSS.pm 105 2009-05-18 10:52:03Z hasiotis $
 
 package EAFDSS;
 
@@ -77,7 +77,7 @@ that are specific to a certain driver.
 
 =cut
 
-use 5.6.0;
+use 5.006_000;
 use strict;
 use warnings;
 use Carp;
@@ -85,7 +85,7 @@ use Class::Base;
 
 use base qw ( Class::Base );
 
-our($VERSION) = '0.70';
+our($VERSION) = '0.80';
 
 =head1 Methods
 
@@ -412,7 +412,7 @@ The EAFDSS is free Open Source software. IT COMES WITHOUT WARRANTY OF ANY KIND.
 
 =head1 VERSION
 
-This is version 0.70. This version is beta. Suitable for developers wishing to be ready when the software will go stable.
+This is version 0.80.
 
 =head1 AUTHOR
 
